@@ -6,7 +6,8 @@
 // plumbing: it copies game/ and screenshots/ beside this file into the
 // output folder and writes the dossier the judge reads. Four screenshots
 // go with it — a golden-hour chase, a night-market fight, the turf board
-// and the victory screen — all rendered by the game itself.
+// and the victory screen — all rendered by the game itself. Two runs of
+// this program produce a byte-identical output folder.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
