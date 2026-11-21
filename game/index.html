@@ -3,17 +3,228 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<title>Costa Palma — Make GTA 6</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #14101c; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
   #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .panel { position: fixed; background: rgba(16, 14, 26, 0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; color: #f2f0e8; padding: 8px 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.45); }
+  .gold { color: #ffd94a; } .teal { color: #39c2d7; } .pink { color: #ff5da2; }
+  /* Mission banner, top-left */
+  #hud-mission-box { top: 12px; left: 12px; width: 330px; border-top: 3px solid #ffd94a; }
+  #hud-mission { font-weight: 800; font-size: 15px; letter-spacing: 0.4px; }
+  #hud-stage-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 12px; }
+  #hud-stage { background: #ffd94a; color: #14101c; font-weight: 800; padding: 1px 6px; border-radius: 4px; }
+  #hud-stagebar-wrap { flex: 1; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
+  #hud-stagebar { height: 100%; background: #3fae6a; width: 25%; }
+  #hud-timer { font-weight: 700; }
+  #hud-objective { font-size: 13px; margin-top: 5px; }
+  #hud-next { font-size: 12px; color: #39c2d7; margin-top: 2px; }
+  #hud-dist { font-size: 12px; color: #ffd94a; }
+  /* Dispatch panel, below mission */
+  #hud-dispatch { top: 158px; left: 12px; width: 330px; font-size: 12px; }
+  .dp-head { display: flex; justify-content: space-between; color: #ff6a5e; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; margin-bottom: 3px; }
+  .dp-row { display: flex; justify-content: space-between; padding: 2px 0; }
+  .dp-name { font-weight: 800; width: 82px; } .dp-role { color: #ffb3ab; flex: 1; } .dp-dist { color: #ffd94a; font-weight: 700; }
+  .dp-more { color: #9ad7ff; font-size: 11px; margin-top: 2px; }
+  /* Wanted, top-centre */
+  #hud-wanted { top: 12px; left: 50%; transform: translateX(-50%); background: transparent; border: none; box-shadow: none; text-align: center; padding: 0; }
+  #hud-stars { font-size: 26px; letter-spacing: 4px; text-shadow: 0 2px 8px rgba(0,0,0,0.7); }
+  .star { color: rgba(255,255,255,0.35); } .star.on { color: #ffd94a; }
+  #hud-air { display: none; background: #d8382c; color: #fff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px; margin-top: 2px; }
+  /* Cash + vitals, top-right */
+  #hud-right { top: 12px; right: 12px; width: 250px; text-align: right; }
+  #hud-cash { font-size: 30px; font-weight: 900; color: #7dffb0; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+  #hud-clock { font-size: 15px; font-weight: 700; }
+  .bar-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; }
+  .bar-row span { width: 52px; text-align: left; font-weight: 700; }
+  .bar { flex: 1; height: 9px; background: #333; border-radius: 4px; overflow: hidden; }
+  .bar > div { height: 100%; }
+  #hud-hp { background: #3fae6a; width: 100%; } #hud-armor { background: #5aa2ff; width: 50%; }
+  #hud-rank { font-size: 12px; font-weight: 800; color: #ffd94a; margin-top: 5px; }
+  #hud-respect { font-size: 11px; color: #c9c4b8; }
+  #hud-respect-bar { background: #ff5da2; width: 30%; }
+  /* Weapon slots + crew, right-middle */
+  #hud-weapons { top: 218px; right: 12px; display: flex; gap: 6px; background: transparent; border: none; box-shadow: none; padding: 0; }
+  .wslot { width: 62px; background: rgba(16,14,26,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px 4px; text-align: center; font-size: 11px; }
+  .wslot.sel { border-color: #ffd94a; box-shadow: 0 0 0 2px rgba(255,217,74,0.5); }
+  .wslot.locked { opacity: 0.45; }
+  .wkey { display: block; font-size: 10px; color: #9ad7ff; } .wname { display: block; font-weight: 800; } .wammo { display: block; color: #ffd94a; font-weight: 700; }
+  #hud-crew { top: 292px; right: 12px; width: 250px; background: transparent; border: none; box-shadow: none; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .crew-card { display: flex; gap: 6px; align-items: center; background: rgba(16,14,26,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px 7px; font-size: 11px; }
+  .crew-key { background: #39c2d7; color: #14101c; font-weight: 900; border-radius: 3px; padding: 1px 5px; }
+  .crew-skill { font-weight: 800; color: #ffd94a; } .crew-name { flex: 1; color: #c9c4b8; } .crew-state { color: #7dffb0; font-weight: 700; }
+  /* District + minimap, bottom-left */
+  #hud-district-box { left: 12px; bottom: 218px; width: 210px; }
+  #hud-district { font-size: 17px; font-weight: 900; color: #ffd94a; }
+  #hud-district-sub { font-size: 11px; color: #c9c4b8; }
+  #hud-turf { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; color: #fff; padding: 2px 7px; border-radius: 4px; }
+  #hud-daypart { display: block; margin-top: 4px; font-size: 11px; color: #9ad7ff; }
+  #hud-minimap-box { left: 12px; bottom: 52px; width: 172px; height: 172px; padding: 0; overflow: hidden; border-radius: 50%; border: 3px solid rgba(255,255,255,0.75); }
+  #minimap { width: 172px; height: 172px; display: block; border-radius: 50%; }
+  #hud-controls { left: 12px; bottom: 12px; font-size: 11px; color: #c9c4b8; padding: 5px 9px; }
+  /* Chain, centre */
+  #hud-chain { display: none; top: 26%; left: 50%; transform: translateX(-50%); background: transparent; border: none; box-shadow: none; text-align: center; padding: 0; }
+  #hud-chain-n { font-size: 44px; font-weight: 900; color: #ffd94a; text-shadow: 0 3px 12px rgba(0,0,0,0.8); }
+  #hud-chain-sub { font-size: 13px; font-weight: 700; letter-spacing: 2px; }
+  /* Dialog bar, bottom-centre */
+  #hud-dialog { display: none; bottom: 64px; left: 50%; transform: translateX(-50%); width: 520px; border-left: 4px solid #ffd94a; align-items: flex-start; gap: 10px; }
+  #hud-dialog-name { color: #ffd94a; font-weight: 900; font-size: 13px; white-space: nowrap; }
+  #hud-dialog-text { font-size: 13px; line-height: 1.35; }
+  /* Speed + radio, bottom-right */
+  #hud-carbox { right: 12px; bottom: 52px; width: 230px; text-align: right; }
+  #hud-speed { font-size: 46px; font-weight: 900; line-height: 1; }
+  #hud-speed-unit { font-size: 13px; color: #c9c4b8; }
+  #hud-carname { font-size: 15px; font-weight: 800; color: #39c2d7; }
+  #hud-condition { font-size: 11px; color: #ffd94a; }
+  #hud-radio { margin-top: 5px; font-size: 11px; color: #ff9ecf; }
+  #hud-dj { font-size: 11px; color: #c9c4b8; font-style: italic; }
+  #hud-feed { left: 50%; transform: translateX(-50%); right: auto; top: 92px; bottom: auto; width: auto; text-align: center; font-size: 13px; font-weight: 800; background: transparent; border: none; box-shadow: none; padding: 0; }
+  #hud-feed div { color: #ffd94a; text-shadow: 0 2px 6px rgba(0,0,0,0.9); margin-top: 2px; }
+  #hud-taxi { display: none; top: 190px; left: 50%; transform: translateX(-50%); width: 330px; border-left: 4px solid #f2c14e; }
+  #hud-taxi-fare { font-size: 15px; font-weight: 900; color: #f2c14e; }
+  #hud-taxi-dest { font-size: 12px; }
+  #hud-vigilante { display: none; top: 260px; left: 50%; transform: translateX(-50%); width: 330px; border-left: 4px solid #ff6a5e; font-size: 13px; font-weight: 800; color: #ffb3ab; }
+  /* Full screens */
+  .screen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(10, 8, 18, 0.72); z-index: 10; }
+  .screen-card { width: 680px; max-width: 92vw; max-height: 88vh; overflow-y: auto; background: rgba(20, 16, 28, 0.96); border: 1px solid rgba(255,217,74,0.4); border-radius: 12px; color: #f2f0e8; padding: 26px 30px; }
+  .screen-card h1 { margin: 0 0 4px; font-size: 44px; letter-spacing: 2px; color: #ffd94a; }
+  .screen-card h2 { margin: 0 0 10px; font-size: 22px; color: #ffd94a; }
+  .screen-card p { line-height: 1.5; color: #d8d2c4; }
+  .btn { display: inline-block; margin: 8px 8px 0 0; padding: 10px 18px; background: #ffd94a; color: #14101c; border: none; border-radius: 6px; font-weight: 900; font-size: 14px; cursor: pointer; }
+  .btn.ghost { background: transparent; color: #ffd94a; border: 2px solid #ffd94a; }
+  .b-mission { display: flex; gap: 8px; padding: 6px 4px; border-bottom: 1px solid rgba(255,255,255,0.12); font-size: 13px; }
+  .b-mission.active { background: rgba(255,217,74,0.14); } .b-mission.done { opacity: 0.65; }
+  .b-mn { font-weight: 900; color: #ffd94a; width: 18px; } .b-mname { flex: 1; font-weight: 700; } .b-mpay { color: #7dffb0; font-weight: 700; } .b-mstate { color: #9ad7ff; font-size: 11px; }
+  .b-turf-row { display: flex; gap: 8px; font-size: 13px; padding: 3px 0; }
+  .b-turf-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-top: 2px; }
+  .b-turf-sum { font-weight: 800; color: #7dffb0; margin-top: 4px; font-size: 13px; }
+  .b-side-row { font-size: 13px; padding: 3px 0; color: #d8d2c4; }
+  .board-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 10px; }
+  .board-grid h3 { margin: 0 0 6px; font-size: 13px; color: #39c2d7; letter-spacing: 1px; }
+  #board-stats, #board-saves { font-size: 13px; line-height: 1.6; color: #d8d2c4; }
+  #title-screen { display: flex; }
+  .tagline { color: #ff9ecf; font-weight: 700; letter-spacing: 3px; font-size: 14px; }
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
+<canvas id="game" aria-label="Costa Palma: an open-world crime game — explore the city on foot and by car"></canvas>
 <p id="status" role="status" aria-live="polite"></p>
+
+<div id="hud-mission-box" class="panel">
+  <div id="hud-mission">JOB 1/8 · FIRST KEY</div>
+  <div id="hud-stage-row"><span id="hud-stage">STAGE 1/4</span><div id="hud-stagebar-wrap"><div id="hud-stagebar"></div></div><span id="hud-timer">⏱ —</span></div>
+  <div id="hud-objective">Steal a car — deliver it to the plaza</div>
+  <div id="hud-next">NEXT Lose the heat, then meet Nadia</div>
+  <div id="hud-dist">—</div>
+</div>
+
+<div id="hud-dispatch" class="panel"></div>
+
+<div id="hud-wanted" class="panel"><div id="hud-stars"></div><span id="hud-air">IN SIGHT</span></div>
+
+<div id="hud-right" class="panel">
+  <div id="hud-cash">$1,240</div>
+  <div id="hud-clock">18:42</div>
+  <div class="bar-row"><span>HEALTH</span><div class="bar"><div id="hud-hp"></div></div><b id="hud-hp-num">100</b></div>
+  <div class="bar-row"><span>ARMOUR</span><div class="bar"><div id="hud-armor"></div></div><b id="hud-armor-num">50</b></div>
+  <div id="hud-rank">RESPECT LV 1 · ROOKIE</div>
+  <div id="hud-respect">290 / 300 RP</div>
+  <div class="bar-row"><span></span><div class="bar"><div id="hud-respect-bar"></div></div></div>
+</div>
+
+<div id="hud-weapons" class="panel"></div>
+<div id="hud-crew" class="panel"></div>
+
+<div id="hud-district-box" class="panel">
+  <div id="hud-district">PALMA PLAZA</div>
+  <div id="hud-district-sub">Fountain Square</div>
+  <span id="hud-turf">PALMA 82%</span>
+  <span id="hud-daypart">18:42 · GOLDEN HOUR</span>
+</div>
+
+<div id="hud-minimap-box" class="panel"><canvas id="minimap" width="172" height="172"></canvas></div>
+<div id="hud-controls" class="panel">WASD move · E enter car · F punch · SPACE shoot · H horn · T taxi · V vigilante · R radio · M map · TAB board · P pause</div>
+
+<div id="hud-chain" class="panel"><div id="hud-chain-n">9 CHAIN</div><div id="hud-chain-sub">KEEP IT GOING</div></div>
+
+<div id="hud-dialog" class="panel"><span id="hud-dialog-name">NADIA CRUZ</span><span id="hud-dialog-text"></span></div>
+
+<div id="hud-carbox" class="panel">
+  <div><span id="hud-speed">0</span> <span id="hud-speed-unit">KM/H</span></div>
+  <div id="hud-carname">ON FOOT</div>
+  <div id="hud-condition"></div>
+  <div id="hud-radio">LUMEN FM 98.6 · NEON TIDELINE</div>
+  <div id="hud-dj">DJ MARLA: traffic is thick on the causeway.</div>
+</div>
+
+<div id="hud-feed" class="panel"></div>
+<div id="hud-taxi" class="panel"><div id="hud-taxi-fare">FARE $0.00</div><div id="hud-taxi-dest"></div></div>
+<div id="hud-vigilante" class="panel"><span id="hud-vig-text"></span></div>
+
+<div id="title-screen" class="screen">
+  <div class="screen-card">
+    <div class="tagline">EIGHT JOBS · ONE COAST · NO WAY BACK</div>
+    <h1>COSTA PALMA</h1>
+    <p>An open-world crime game. Steal cars, outrun the PCPD, run eight story jobs for Nadia Cruz, win the turf war against Dario Flint's crew, drive taxis, hunt vigilante targets — and own the coast by sunrise.</p>
+    <p><b>Controls:</b> WASD move / drive · E enter or steal a car · F punch · SPACE shoot · H horn · T taxi job · V vigilante · R radio · M map · TAB mission board · P pause.</p>
+    <button class="btn" id="btn-continue">CONTINUE</button>
+    <button class="btn ghost" id="btn-new">NEW GAME</button>
+  </div>
+</div>
+
+<div id="board-screen" class="screen">
+  <div class="screen-card">
+    <h2>🗺️ COSTA PALMA — MISSION BOARD &amp; TURF MAP</h2>
+    <div class="board-grid">
+      <div><h3>STORY JOBS</h3><div id="board-missions"></div></div>
+      <div><h3>TURF WAR — WHO OWNS THE CITY</h3><div id="board-turf"></div>
+      <h3 style="margin-top:12px">SIDE JOBS</h3><div id="board-side"></div></div>
+    </div>
+    <h3 style="color:#39c2d7;margin:14px 0 4px">CAREER STATS</h3>
+    <div id="board-stats"></div>
+    <div id="board-saves" style="margin-top:8px;color:#ffd94a"></div>
+    <button class="btn" id="btn-board-close">BACK TO THE STREETS (TAB)</button>
+  </div>
+</div>
+
+<div id="map-screen" class="screen">
+  <div class="screen-card">
+    <h2>🗺️ CITY MAP — COSTA PALMA</h2>
+    <p>Plaza, Marina, Strand, Neon Strip, Docks and Old Town — the sea to the west, the beach road along the shore. Green turf is yours. Red turf belongs to Flint. Take it back, one job at a time.</p>
+    <button class="btn" id="btn-map-close">CLOSE MAP (M)</button>
+  </div>
+</div>
+
+<div id="pause-screen" class="screen">
+  <div class="screen-card">
+    <h2>PAUSED</h2>
+    <p>The city waits for you. Your progress is saved to this browser.</p>
+    <button class="btn" id="btn-resume">RESUME (P)</button>
+  </div>
+</div>
+
+<div id="victory-screen" class="screen">
+  <div class="screen-card">
+    <h1>COSTA PALMA IS YOURS</h1>
+    <p>Eight jobs. One coast. Zero debts left to Flint. Nadia pours two glasses at the marina — the tide finally answers to you.</p>
+    <div id="vic-stats" style="line-height:1.7"></div>
+    <button class="btn" id="btn-again">PLAY AGAIN</button>
+    <button class="btn ghost" id="btn-cruise">KEEP CRUISING</button>
+  </div>
+</div>
+
+<div id="over-screen" class="screen">
+  <div class="screen-card">
+    <h2 id="over-title">BUSTED</h2>
+    <p id="over-text"></p>
+    <button class="btn" id="btn-respawn">BACK ON THE STREETS</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.min.js" } }
+</script>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
